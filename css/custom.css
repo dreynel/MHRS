@@ -1,0 +1,171 @@
+/* Custom Styles for ISATU Dumangas Campus Mini Hotel Reservation System */
+@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=Inter:wght@300;400;500;600;700&display=swap');
+
+:root {
+  --isatu-blue: #000092;
+  --isatu-blue-dark: #000066;
+  --isatu-blue-light: #1e3a8a;
+  --isatu-gold: #ffcc00;
+  --isatu-gold-hover: #e6b800;
+  --isatu-gold-light: #fff5cc;
+}
+
+body {
+  font-family: 'Inter', sans-serif;
+  background-color: #f8fafc;
+  color: #1e293b;
+  overflow-x: hidden;
+}
+
+h1, h2, h3, h4, h5, h6, .font-heading {
+  font-family: 'Outfit', sans-serif;
+}
+
+/* Institutional Banner Accent Gradient */
+.bg-isatu-gradient {
+  background: linear-gradient(135deg, #000092 0%, #000055 60%, #0f172a 100%);
+}
+
+.bg-gold-gradient {
+  background: linear-gradient(135deg, #ffcc00 0%, #f59e0b 100%);
+}
+
+.text-isatu-blue {
+  color: #000092;
+}
+
+.bg-isatu-blue {
+  background-color: #000092;
+}
+
+.border-isatu-blue {
+  border-color: #000092;
+}
+
+.text-isatu-gold {
+  color: #ffcc00;
+}
+
+.bg-isatu-gold {
+  background-color: #ffcc00;
+}
+
+.border-isatu-gold {
+  border-color: #ffcc00;
+}
+
+/* Glassmorphism utility */
+.glass-panel {
+  background: rgba(255, 255, 255, 0.92);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(226, 232, 240, 0.8);
+}
+
+.glass-dark {
+  background: rgba(0, 0, 146, 0.88);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 204, 0, 0.3);
+}
+
+/* Floating card effects */
+.hover-lift {
+  transition: transform 0.25s cubic-bezier(0.4, 0, 0.2, 1), box-shadow 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.hover-lift:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 12px 24px -6px rgba(0, 0, 146, 0.15);
+}
+
+/* Custom Scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+}
+::-webkit-scrollbar-track {
+  background: #f1f5f9;
+}
+::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 4px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #000092;
+}
+
+/* Pulse animation for active badges */
+@keyframes pulseGlow {
+  0%, 100% {
+    box-shadow: 0 0 0 0 rgba(255, 204, 0, 0.5);
+  }
+  50% {
+    box-shadow: 0 0 0 10px rgba(255, 204, 0, 0);
+  }
+}
+
+.badge-glow {
+  animation: pulseGlow 2.5s infinite;
+}
+
+/* Print Voucher Styling */
+@media print {
+  body * {
+    visibility: hidden;
+  }
+  #printableVoucher, #printableVoucher * {
+    visibility: visible;
+  }
+  #printableVoucher {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 100%;
+  }
+}
+
+/* Role Selector Active Styles */
+.role-pill {
+  transition: all 0.2s ease-in-out;
+}
+.role-pill.active {
+  background-color: #ffcc00;
+  color: #000092;
+  font-weight: 800;
+  box-shadow: 0 4px 12px rgba(255, 204, 0, 0.4);
+}
+
+/* Room Housekeeping Status Badges */
+.room-status-clean {
+  background-color: #d1fae5;
+  color: #065f46;
+  border-color: #a7f3d0;
+}
+.room-status-occupied {
+  background-color: #dbeafe;
+  color: #1e40af;
+  border-color: #bfdbfe;
+}
+.room-status-turnover {
+  background-color: #fef3c7;
+  color: #92400e;
+  border-color: #fde68a;
+}
+.room-status-maintenance {
+  background-color: #f1f5f9;
+  color: #475569;
+  border-color: #cbd5e1;
+}
+
+/* Admin Tabs */
+.admin-tab-btn.active {
+  border-bottom: 3px solid #000092;
+  color: #000092;
+  font-weight: 800;
+}
+
+/* Strict visibility utility */
+.hidden {
+  display: none !important;
+}
+

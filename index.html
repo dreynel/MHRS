@@ -1,0 +1,1445 @@
+<!DOCTYPE html>
+<html lang="en" class="scroll-smooth">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ISATU Dumangas Campus Mini Hotel - Registration & Reservation System</title>
+  <meta name="description" content="Official Web-Based Registration and Reservation System for ISAT U Dumangas Campus Mini Hotel. Book rooms, track status, and view institutional rates." />
+  
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            isatu: {
+              blue: '#000092',
+              'blue-dark': '#000066',
+              gold: '#ffcc00',
+              'gold-hover': '#e6b800',
+              'gold-light': '#fff5cc',
+            }
+          },
+          fontFamily: {
+            heading: ['Outfit', 'sans-serif'],
+            sans: ['Inter', 'sans-serif'],
+          }
+        }
+      }
+    }
+  </script>
+
+  <!-- Lucide Icons -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+
+  <!-- Custom CSS -->
+  <link rel="stylesheet" href="css/custom.css" />
+
+  <script>
+    // Early switchRole bridge
+    function switchRole(role) {
+      if (window._switchRoleApp) {
+        window._switchRoleApp(role);
+      } else {
+        try { localStorage.setItem('isatu_mhrs_role', role); } catch (e) {}
+        const g = document.getElementById('userPortalView');
+        const r = document.getElementById('receptionistPortalView');
+        const a = document.getElementById('adminPortalView');
+        if (g) { g.classList.toggle('hidden', role !== 'guest'); g.style.display = role === 'guest' ? 'block' : 'none'; }
+        if (r) { r.classList.toggle('hidden', role !== 'receptionist'); r.style.display = role === 'receptionist' ? 'block' : 'none'; }
+        if (a) { a.classList.toggle('hidden', role !== 'admin'); a.style.display = role === 'admin' ? 'block' : 'none'; }
+      }
+    }
+  </script>
+</head>
+<body class="bg-slate-50 text-slate-800 antialiased font-sans flex flex-col min-h-screen">
+
+  <!-- TOP BRANDING BAR -->
+  <div class="bg-isatu-blue-dark text-white py-2 px-4 text-xs font-medium border-b border-yellow-400/20">
+    <div class="max-w-7xl mx-auto flex flex-col sm:flex-row justify-between items-center gap-2 text-center sm:text-left">
+      <div class="flex items-center gap-2">
+        <span class="bg-isatu-gold text-isatu-blue font-extrabold px-2 py-0.5 rounded text-[10px]">ISAT U</span>
+        <span>Iloilo Science and Technology University - Dumangas Campus Mini Hotel</span>
+      </div>
+      <div class="flex items-center gap-4 text-slate-300">
+        <span class="flex items-center gap-1">
+          <i data-lucide="phone" class="w-3.5 h-3.5 text-isatu-gold"></i> (033) 361-2134
+        </span>
+        <span class="flex items-center gap-1">
+          <i data-lucide="mail" class="w-3.5 h-3.5 text-isatu-gold"></i> minihotel.dumangas@isatu.edu.ph
+        </span>
+      </div>
+    </div>
+  </div>
+
+  <!-- ROLE SELECTOR & RBAC SIMULATOR TOOLBAR -->
+  <div class="bg-slate-900 text-white border-b border-slate-700 py-2.5 px-4 sticky top-0 z-50 shadow-md">
+    <div class="max-w-7xl mx-auto flex flex-col md:flex-row items-center justify-between gap-3">
+      <div class="flex items-center gap-2">
+        <span class="inline-flex items-center gap-1.5 text-[11px] font-extrabold uppercase tracking-wider bg-yellow-400/20 text-isatu-gold px-2.5 py-1 rounded-md border border-yellow-400/30">
+          <i data-lucide="shield" class="w-3.5 h-3.5"></i> RBAC Role Simulator
+        </span>
+        <span class="text-xs text-slate-300 font-medium hidden sm:inline">Active User Role:</span>
+      </div>
+
+      <!-- Role Switcher Buttons -->
+      <div class="inline-flex bg-slate-800 p-1 rounded-xl border border-slate-700 shadow-inner">
+        <button type="button" id="roleBtn-guest" onclick="switchRole('guest')" class="role-pill active px-3.5 py-1.5 rounded-lg text-xs font-bold flex items-center gap-1.5 cursor-pointer">
+          <i data-lucide="user" class="w-3.5 h-3.5"></i>
+          <span>Guest</span>
+        </button>
+        <button type="button" id="roleBtn-receptionist" onclick="switchRole('receptionist')" class="role-pill px-3.5 py-1.5 rounded-lg text-xs font-bold text-slate-300 hover:text-white flex items-center gap-1.5 cursor-pointer">
+          <i data-lucide="bell" class="w-3.5 h-3.5"></i>
+          <span>Receptionist</span>
+          <span id="receptionistBadgeCount" class="bg-rose-500 text-white text-[10px] px-1.5 py-0.2 rounded-full font-extrabold">1</span>
+        </button>
+        <button type="button" id="roleBtn-admin" onclick="switchRole('admin')" class="role-pill px-3.5 py-1.5 rounded-lg text-xs font-bold text-slate-300 hover:text-white flex items-center gap-1.5 cursor-pointer">
+          <i data-lucide="shield-check" class="w-3.5 h-3.5"></i>
+          <span>Admin</span>
+        </button>
+      </div>
+
+      <!-- Role Permission Summary Pill -->
+      <div id="roleContextBadge" class="text-xs text-slate-300 flex items-center gap-2">
+        <span class="w-2 h-2 rounded-full bg-emerald-400"></span>
+        <span class="font-medium text-[11px]">Level 1: Public Guest Booking & Self-Service Pass</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- NAVIGATION HEADER -->
+  <header class="bg-white/95 backdrop-blur-md border-b border-slate-200 shadow-sm relative z-40">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-20 flex items-center justify-between">
+      
+      <!-- Institutional Logo & Crest -->
+      <a href="#" onclick="switchRole('guest'); return false;" class="flex items-center gap-3 group">
+        <div class="w-12 h-12 rounded-xl bg-isatu-blue text-isatu-gold font-extrabold text-2xl flex items-center justify-center shadow-md border-2 border-isatu-gold group-hover:scale-105 transition-transform">
+          MH
+        </div>
+        <div>
+          <span class="font-extrabold text-lg sm:text-xl text-isatu-blue leading-none block font-heading">ISAT U Dumangas</span>
+          <span class="text-xs font-bold text-amber-600 tracking-wider uppercase">Campus Mini Hotel</span>
+        </div>
+      </a>
+
+      <!-- Dynamic Navigation Links by Role -->
+      <nav id="headerNavLinks" class="hidden md:flex items-center gap-6 text-sm font-semibold text-slate-700">
+        <a href="#rooms" class="hover:text-isatu-blue transition-colors">Accommodations</a>
+        <a href="#discounts" class="hover:text-isatu-blue transition-colors">Institutional Rates</a>
+        <a href="#facilities" class="hover:text-isatu-blue transition-colors">Campus Facilities</a>
+        <a href="#location" class="hover:text-isatu-blue transition-colors">Location & Contact</a>
+      </nav>
+
+      <!-- Header Right Action Buttons (Dynamic according to role) -->
+      <div id="headerActions" class="flex items-center gap-3">
+        <!-- Injected via JS based on active role -->
+      </div>
+    </div>
+  </header>
+
+
+  <!-- USER PORTAL VIEW CONTAINER -->
+  <main id="userPortalView" class="flex-grow">
+
+    <!-- HERO BANNER SECTION -->
+    <section class="relative bg-isatu-gradient text-white py-16 lg:py-24 overflow-hidden">
+      <!-- Background Image Overlay with Opacity -->
+      <div class="absolute inset-0 opacity-20 pointer-events-none">
+        <img src="images/hero.png" alt="Mini Hotel Banner" class="w-full h-full object-cover" />
+      </div>
+
+      <div class="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-12 items-center">
+          
+          <!-- Hero Text -->
+          <div class="lg:col-span-7 space-y-6 text-center lg:text-left">
+            <div class="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-yellow-400/20 text-isatu-gold text-xs font-extrabold border border-yellow-400/30 badge-glow">
+              <i data-lucide="sparkles" class="w-4 h-4"></i>
+              <span>Official Institutional Hospitality Service</span>
+            </div>
+
+            <h1 class="text-3xl sm:text-5xl lg:text-6xl font-extrabold font-heading text-white tracking-tight leading-tight">
+              Comfortable Stay at <span class="text-isatu-gold">ISAT U Dumangas</span>
+            </h1>
+
+            <p class="text-base sm:text-lg text-slate-200 max-w-2xl font-normal leading-relaxed">
+              Welcome to the official Mini Hotel of ISATU Dumangas Campus. Providing premium accommodations, guest registration, and conference rooms for university faculty, students, board delegates, and visitors.
+            </p>
+
+            <div class="flex flex-wrap items-center justify-center lg:justify-start gap-4 pt-2">
+              <button 
+                onclick="openReservationModal()"
+                class="px-7 py-3.5 bg-isatu-gold text-isatu-blue hover:bg-yellow-400 rounded-xl font-bold text-sm shadow-xl transition-all hover:scale-105 flex items-center gap-2"
+              >
+                <i data-lucide="calendar" class="w-5 h-5"></i>
+                <span>Book a Room Now</span>
+              </button>
+              
+              <a 
+                href="#rooms"
+                class="px-7 py-3.5 bg-white/10 hover:bg-white/20 text-white rounded-xl font-semibold text-sm backdrop-blur transition-all border border-white/20 flex items-center gap-2"
+              >
+                <i data-lucide="grid" class="w-5 h-5"></i>
+                <span>View Accommodations</span>
+              </a>
+            </div>
+          </div>
+
+          <!-- Hero Quick Booking Search Widget -->
+          <div class="lg:col-span-5">
+            <div class="glass-panel rounded-3xl p-6 shadow-2xl text-slate-800">
+              <div class="flex items-center justify-between border-b border-slate-200 pb-4 mb-4">
+                <div class="flex items-center gap-2">
+                  <div class="w-8 h-8 rounded-lg bg-isatu-blue text-isatu-gold flex items-center justify-center font-bold">
+                    <i data-lucide="search" class="w-4 h-4"></i>
+                  </div>
+                  <h2 class="font-extrabold text-slate-900 font-heading">Quick Stay Search</h2>
+                </div>
+                <span class="text-xs bg-emerald-100 text-emerald-800 font-bold px-2.5 py-1 rounded-full">Live Rates</span>
+              </div>
+
+              <div class="space-y-4">
+                <div>
+                  <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">Check-in Date</label>
+                  <input type="date" id="heroCheckIn" class="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 text-sm font-medium focus:ring-2 focus:ring-isatu-blue focus:outline-none" />
+                </div>
+
+                <div>
+                  <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">Check-out Date</label>
+                  <input type="date" id="heroCheckOut" class="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 text-sm font-medium focus:ring-2 focus:ring-isatu-blue focus:outline-none" />
+                </div>
+
+                <div>
+                  <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">Guest Affiliation</label>
+                  <select id="heroAffiliation" class="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 text-sm font-medium focus:ring-2 focus:ring-isatu-blue focus:outline-none bg-white">
+                    <option value="student">ISATU Student (20% Off)</option>
+                    <option value="faculty">ISATU Faculty / Staff (20% Off)</option>
+                    <option value="alumni">ISATU Alumni (10% Off)</option>
+                    <option value="external" selected>External Guest / Visitor</option>
+                  </select>
+                </div>
+
+                <button 
+                  onclick="openReservationModal()"
+                  class="w-full py-3.5 bg-isatu-blue text-white hover:bg-blue-900 rounded-xl font-bold text-sm shadow-md transition-all flex items-center justify-center gap-2 mt-2"
+                >
+                  <span>Search Available Rooms</span>
+                  <i data-lucide="arrow-right" class="w-4 h-4"></i>
+                </button>
+              </div>
+            </div>
+          </div>
+
+        </div>
+      </div>
+    </section>
+
+    <!-- INSTITUTIONAL DISCOUNTS BANNER -->
+    <section id="discounts" class="bg-isatu-gold text-isatu-blue py-6 shadow-inner border-y border-yellow-400">
+      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div class="flex flex-col md:flex-row items-center justify-between gap-4 text-center md:text-left">
+          <div class="flex items-center gap-3">
+            <div class="w-12 h-12 rounded-full bg-isatu-blue text-isatu-gold flex items-center justify-center flex-shrink-0 shadow">
+              <i data-lucide="award" class="w-6 h-6"></i>
+            </div>
+            <div>
+              <h3 class="font-extrabold text-lg font-heading">Special ISAT U Campus Rates & Discounts</h3>
+              <p class="text-xs sm:text-sm font-medium text-slate-900">Active ISATU Students & Faculty enjoy an instant 20% discount on all room reservations!</p>
+            </div>
+          </div>
+          <div class="flex items-center gap-2">
+            <span class="bg-isatu-blue text-white text-xs font-bold px-3 py-1.5 rounded-lg shadow">20% Student/Faculty</span>
+            <span class="bg-isatu-blue/90 text-yellow-300 text-xs font-bold px-3 py-1.5 rounded-lg shadow">10% Alumni</span>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ACCOMMODATIONS & ROOM CATALOG SECTION -->
+    <section id="rooms" class="py-16 bg-slate-50">
+      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        
+        <div class="text-center max-w-3xl mx-auto mb-12">
+          <span class="text-xs font-extrabold text-amber-600 uppercase tracking-widest block mb-2">Campus Accommodations</span>
+          <h2 class="text-3xl sm:text-4xl font-extrabold font-heading text-isatu-blue">Choose Your Preferred Room</h2>
+          <p class="text-slate-600 text-sm sm:text-base mt-2">All rooms are fully air-conditioned with complimentary Wi-Fi and en-suite facilities.</p>
+        </div>
+
+        <!-- Filter Controls -->
+        <div class="flex flex-wrap items-center justify-center gap-2 mb-10">
+          <button onclick="filterRooms('all', this)" class="filter-btn px-5 py-2 rounded-xl text-xs font-bold transition-all bg-isatu-blue text-white shadow-md">All Accommodations</button>
+          <button onclick="filterRooms('standard', this)" class="filter-btn px-5 py-2 rounded-xl text-xs font-bold transition-all bg-white text-slate-700 hover:bg-slate-100 border border-slate-200">Standard Rooms</button>
+          <button onclick="filterRooms('deluxe', this)" class="filter-btn px-5 py-2 rounded-xl text-xs font-bold transition-all bg-white text-slate-700 hover:bg-slate-100 border border-slate-200">Deluxe Suites</button>
+          <button onclick="filterRooms('dorm', this)" class="filter-btn px-5 py-2 rounded-xl text-xs font-bold transition-all bg-white text-slate-700 hover:bg-slate-100 border border-slate-200">Dormitory Suites</button>
+          <button onclick="filterRooms('function', this)" class="filter-btn px-5 py-2 rounded-xl text-xs font-bold transition-all bg-white text-slate-700 hover:bg-slate-100 border border-slate-200">Function Halls</button>
+        </div>
+
+        <!-- Dynamic Rooms Grid -->
+        <div id="roomsGrid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+          <!-- Rendered via app.js -->
+        </div>
+
+      </div>
+    </section>
+
+    <!-- CAMPUS FACILITIES & SERVICES -->
+    <section id="facilities" class="py-16 bg-white border-t border-slate-200">
+      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div class="text-center max-w-3xl mx-auto mb-12">
+          <h2 class="text-3xl font-extrabold font-heading text-slate-900">Mini Hotel Amenities & Services</h2>
+          <p class="text-slate-600 text-sm mt-2">Equipped to accommodate academic stays, guest speakers, seminars, and visitors.</p>
+        </div>
+
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+          <div class="p-6 rounded-2xl bg-slate-50 border border-slate-200 hover-lift">
+            <div class="w-12 h-12 rounded-xl bg-isatu-blue/10 text-isatu-blue flex items-center justify-center mb-4">
+              <i data-lucide="wifi" class="w-6 h-6"></i>
+            </div>
+            <h3 class="font-bold text-lg text-slate-900 mb-1">Campus Wi-Fi</h3>
+            <p class="text-xs text-slate-600">High-speed internet access throughout the mini hotel premises.</p>
+          </div>
+
+          <div class="p-6 rounded-2xl bg-slate-50 border border-slate-200 hover-lift">
+            <div class="w-12 h-12 rounded-xl bg-isatu-blue/10 text-isatu-blue flex items-center justify-center mb-4">
+              <i data-lucide="shield" class="w-6 h-6"></i>
+            </div>
+            <h3 class="font-bold text-lg text-slate-900 mb-1">24/7 Security</h3>
+            <p class="text-xs text-slate-600">Monitored campus security and reception service desk for guest safety.</p>
+          </div>
+
+          <div class="p-6 rounded-2xl bg-slate-50 border border-slate-200 hover-lift">
+            <div class="w-12 h-12 rounded-xl bg-isatu-blue/10 text-isatu-blue flex items-center justify-center mb-4">
+              <i data-lucide="coffee" class="w-6 h-6"></i>
+            </div>
+            <h3 class="font-bold text-lg text-slate-900 mb-1">Mini Dining Area</h3>
+            <p class="text-xs text-slate-600">Complimentary morning coffee and dining facilities for guests.</p>
+          </div>
+
+          <div class="p-6 rounded-2xl bg-slate-50 border border-slate-200 hover-lift">
+            <div class="w-12 h-12 rounded-xl bg-isatu-blue/10 text-isatu-blue flex items-center justify-center mb-4">
+              <i data-lucide="car" class="w-6 h-6"></i>
+            </div>
+            <h3 class="font-bold text-lg text-slate-900 mb-1">Free Parking</h3>
+            <p class="text-xs text-slate-600">Spacious parking space available within campus grounds.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- LOCATION & CONTACT -->
+    <section id="location" class="py-16 bg-slate-900 text-white">
+      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
+          
+          <div class="space-y-6">
+            <span class="text-xs font-bold text-isatu-gold tracking-widest uppercase">Campus Location</span>
+            <h2 class="text-3xl sm:text-4xl font-extrabold font-heading text-white">Visit ISAT U Dumangas Campus</h2>
+            <p class="text-slate-300 text-sm leading-relaxed">
+              Located conveniently inside the Dumangas Campus, providing quiet, comfortable hospitality services close to university offices and training centers.
+            </p>
+
+            <div class="space-y-3 text-sm text-slate-300">
+              <div class="flex items-center gap-3">
+                <i data-lucide="map-pin" class="w-5 h-5 text-isatu-gold"></i>
+                <span>P.D. Monfort North, Dumangas, Iloilo, Philippines</span>
+              </div>
+              <div class="flex items-center gap-3">
+                <i data-lucide="phone" class="w-5 h-5 text-isatu-gold"></i>
+                <span>(033) 361-2134 / 0917-555-4321</span>
+              </div>
+              <div class="flex items-center gap-3">
+                <i data-lucide="clock" class="w-5 h-5 text-isatu-gold"></i>
+                <span>Reception Desk: 7:00 AM - 9:00 PM Daily</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="bg-slate-800 p-8 rounded-3xl border border-slate-700 shadow-2xl">
+            <h3 class="font-bold text-xl text-isatu-gold mb-4 font-heading">Have Questions or Inquiry?</h3>
+            <form onsubmit="event.preventDefault(); showToast('Inquiry sent! Our reception staff will reply shortly.', 'success');" class="space-y-4 text-xs">
+              <div>
+                <label class="block text-slate-400 font-medium mb-1">Full Name</label>
+                <input type="text" required placeholder="Enter your name" class="w-full px-3.5 py-2.5 bg-slate-900 border border-slate-700 rounded-xl text-white focus:ring-2 focus:ring-isatu-gold focus:outline-none" />
+              </div>
+              <div>
+                <label class="block text-slate-400 font-medium mb-1">Email Address</label>
+                <input type="email" required placeholder="name@domain.com" class="w-full px-3.5 py-2.5 bg-slate-900 border border-slate-700 rounded-xl text-white focus:ring-2 focus:ring-isatu-gold focus:outline-none" />
+              </div>
+              <div>
+                <label class="block text-slate-400 font-medium mb-1">Message</label>
+                <textarea rows="3" required placeholder="How can we help your stay?" class="w-full px-3.5 py-2.5 bg-slate-900 border border-slate-700 rounded-xl text-white focus:ring-2 focus:ring-isatu-gold focus:outline-none"></textarea>
+              </div>
+              <button type="submit" class="w-full py-3 bg-isatu-gold text-isatu-blue rounded-xl font-bold text-xs hover:bg-yellow-400 transition-all shadow-md">
+                Send Message
+              </button>
+            </form>
+          </div>
+
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- ========================================================================= -->
+  <!-- RECEPTIONIST FRONT DESK PORTAL VIEW (OPERATIONS LEVEL 2)                  -->
+  <!-- ========================================================================= -->
+  <main id="receptionistPortalView" class="hidden flex-grow bg-slate-100 py-8">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-8">
+      
+      <!-- Receptionist Top Operations Banner -->
+      <div class="bg-gradient-to-r from-isatu-blue-dark via-isatu-blue to-blue-900 text-white p-6 sm:p-8 rounded-3xl shadow-xl border border-yellow-400/30 flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
+        <div>
+          <div class="flex items-center gap-2 mb-2">
+            <span class="px-2.5 py-1 bg-isatu-gold text-isatu-blue font-extrabold text-[11px] rounded-md uppercase tracking-wider">
+              Front Desk Operations (Level 2)
+            </span>
+            <span class="inline-flex items-center gap-1.5 px-2.5 py-1 bg-white/15 text-yellow-300 font-bold text-xs rounded-md backdrop-blur">
+              <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+              Duty Clerk: Maria Joy Ramos (AM Shift)
+            </span>
+          </div>
+          <h1 class="text-2xl sm:text-3xl font-extrabold font-heading text-white">Front Desk & Room Operations Hub</h1>
+          <p class="text-xs sm:text-sm text-slate-200 mt-1">Manage guest arrivals, express check-ins, departures, GCash verification, and room turnovers.</p>
+        </div>
+
+        <div class="flex flex-wrap items-center gap-3">
+          <button onclick="openWalkInModal()" class="px-4 py-2.5 bg-isatu-gold text-isatu-blue hover:bg-yellow-400 rounded-xl font-bold text-xs shadow-lg transition-all flex items-center gap-2">
+            <i data-lucide="user-plus" class="w-4 h-4"></i>
+            <span>Register Walk-in Guest</span>
+          </button>
+          <button onclick="refreshFrontDeskData()" class="px-3.5 py-2.5 bg-white/15 hover:bg-white/25 text-white rounded-xl font-bold text-xs backdrop-blur transition-all flex items-center gap-1.5">
+            <i data-lucide="refresh-cw" class="w-4 h-4"></i>
+            <span>Sync Live Desk</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Receptionist Operational Counters -->
+      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
+        <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm flex items-center gap-4">
+          <div class="w-12 h-12 rounded-xl bg-amber-100 text-amber-700 flex items-center justify-center font-bold flex-shrink-0">
+            <i data-lucide="log-in" class="w-6 h-6"></i>
+          </div>
+          <div>
+            <span class="text-xs font-bold text-slate-400 uppercase tracking-wider block">Today's Arrivals</span>
+            <span id="recStatArrivals" class="text-2xl font-extrabold text-slate-900">0</span>
+            <span class="text-[11px] text-amber-600 font-semibold block">Expected check-ins</span>
+          </div>
+        </div>
+
+        <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm flex items-center gap-4">
+          <div class="w-12 h-12 rounded-xl bg-blue-100 text-isatu-blue flex items-center justify-center font-bold flex-shrink-0">
+            <i data-lucide="users" class="w-6 h-6"></i>
+          </div>
+          <div>
+            <span class="text-xs font-bold text-slate-400 uppercase tracking-wider block">In-House Guests</span>
+            <span id="recStatInHouse" class="text-2xl font-extrabold text-isatu-blue">0</span>
+            <span class="text-[11px] text-blue-600 font-semibold block">Currently occupying</span>
+          </div>
+        </div>
+
+        <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm flex items-center gap-4">
+          <div class="w-12 h-12 rounded-xl bg-purple-100 text-purple-700 flex items-center justify-center font-bold flex-shrink-0">
+            <i data-lucide="log-out" class="w-6 h-6"></i>
+          </div>
+          <div>
+            <span class="text-xs font-bold text-slate-400 uppercase tracking-wider block">Departures Due</span>
+            <span id="recStatDepartures" class="text-2xl font-extrabold text-purple-700">0</span>
+            <span class="text-[11px] text-purple-600 font-semibold block">Pending check-out</span>
+          </div>
+        </div>
+
+        <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm flex items-center gap-4">
+          <div class="w-12 h-12 rounded-xl bg-rose-100 text-rose-700 flex items-center justify-center font-bold flex-shrink-0">
+            <i data-lucide="credit-card" class="w-6 h-6"></i>
+          </div>
+          <div>
+            <span class="text-xs font-bold text-slate-400 uppercase tracking-wider block">Payment Verification</span>
+            <span id="recStatPendingPayments" class="text-2xl font-extrabold text-rose-600">0</span>
+            <span class="text-[11px] text-rose-600 font-semibold block">Requires GCash audit</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- VISUAL ROOM HOUSEKEEPING & AVAILABILITY BOARD -->
+      <div class="bg-white rounded-3xl border border-slate-200 shadow-sm p-6 space-y-4">
+        <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 border-b border-slate-100 pb-4">
+          <div>
+            <div class="flex items-center gap-2">
+              <i data-lucide="layout-grid" class="w-5 h-5 text-isatu-blue"></i>
+              <h3 class="font-bold text-lg text-slate-900 font-heading">Room Housekeeping & Status Board</h3>
+            </div>
+            <p class="text-xs text-slate-500">Live floor status. Receptionists can update room turnover readiness upon inspection.</p>
+          </div>
+          <!-- Legend Badges -->
+          <div class="flex flex-wrap items-center gap-2 text-[11px] font-bold">
+            <span class="px-2.5 py-1 rounded-lg bg-emerald-100 text-emerald-800 border border-emerald-200">● Clean / Ready</span>
+            <span class="px-2.5 py-1 rounded-lg bg-blue-100 text-blue-800 border border-blue-200">● Occupied</span>
+            <span class="px-2.5 py-1 rounded-lg bg-amber-100 text-amber-800 border border-amber-200">● Needs Turnover</span>
+            <span class="px-2.5 py-1 rounded-lg bg-slate-100 text-slate-700 border border-slate-200">● Maintenance</span>
+          </div>
+        </div>
+
+        <!-- Room Cards Grid -->
+        <div id="receptionistRoomBoard" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
+          <!-- Injected via JS -->
+        </div>
+      </div>
+
+      <!-- FRONT DESK RESERVATIONS DIRECTORY & OPERATIONS TABLE -->
+      <div class="bg-white rounded-3xl border border-slate-200 shadow-sm overflow-hidden">
+        
+        <!-- Table Toolbar & Filters -->
+        <div class="p-6 border-b border-slate-200 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+          <div>
+            <h3 class="font-bold text-lg text-slate-900 font-heading">Guest Operations Registry</h3>
+            <p class="text-xs text-slate-500">Search guests, inspect GCash transaction receipts, execute check-in, and issue stay vouchers.</p>
+          </div>
+
+          <div class="flex flex-wrap items-center gap-3 w-full md:w-auto">
+            <!-- Search Input -->
+            <div class="relative flex-1 md:w-64">
+              <i data-lucide="search" class="w-4 h-4 text-slate-400 absolute left-3 top-3"></i>
+              <input 
+                type="text" 
+                id="recTableSearch" 
+                onkeyup="filterReceptionistTable()" 
+                placeholder="Search guest, ref, room..." 
+                class="w-full pl-9 pr-3 py-2 text-xs rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-isatu-blue bg-slate-50"
+              />
+            </div>
+
+            <!-- Tab Pills -->
+            <div class="inline-flex p-1 bg-slate-100 rounded-xl border border-slate-200 text-xs font-semibold">
+              <button onclick="setReceptionistFilter('all', this)" class="rec-tab-btn px-3 py-1.5 rounded-lg bg-white text-isatu-blue font-bold shadow-sm">All</button>
+              <button onclick="setReceptionistFilter('pending', this)" class="rec-tab-btn px-3 py-1.5 rounded-lg text-slate-600 hover:text-slate-900">Pending</button>
+              <button onclick="setReceptionistFilter('confirmed', this)" class="rec-tab-btn px-3 py-1.5 rounded-lg text-slate-600 hover:text-slate-900">Confirmed</button>
+              <button onclick="setReceptionistFilter('checked-in', this)" class="rec-tab-btn px-3 py-1.5 rounded-lg text-slate-600 hover:text-slate-900">In-House</button>
+              <button onclick="setReceptionistFilter('checked-out', this)" class="rec-tab-btn px-3 py-1.5 rounded-lg text-slate-600 hover:text-slate-900">Departed</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Directory Table -->
+        <div class="overflow-x-auto">
+          <table class="w-full text-left border-collapse">
+            <thead>
+              <tr class="bg-slate-50 border-b border-slate-200 text-slate-500 font-bold text-[11px] uppercase tracking-wider">
+                <th class="px-4 py-3">Reference No.</th>
+                <th class="px-4 py-3">Guest & Contact</th>
+                <th class="px-4 py-3">Affiliation / Rate</th>
+                <th class="px-4 py-3">Room Unit</th>
+                <th class="px-4 py-3">Stay Schedule</th>
+                <th class="px-4 py-3">Payment</th>
+                <th class="px-4 py-3">Booking Status</th>
+                <th class="px-4 py-3 text-right">Desk Actions</th>
+              </tr>
+            </thead>
+            <tbody id="receptionistTableBody">
+              <!-- Injected via JS -->
+            </tbody>
+          </table>
+        </div>
+
+      </div>
+
+    </div>
+  </main>
+
+  <!-- ========================================================================= -->
+  <!-- ADMIN EXECUTIVE PORTAL VIEW (SUPERVISORY LEVEL 3)                         -->
+  <!-- ========================================================================= -->
+  <main id="adminPortalView" class="hidden flex-grow bg-slate-100 py-8">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-8">
+      
+      <!-- Admin Executive Banner -->
+      <div class="bg-gradient-to-r from-slate-950 via-isatu-blue-dark to-isatu-blue text-white p-6 sm:p-8 rounded-3xl shadow-xl border border-yellow-400/30 flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
+        <div>
+          <div class="flex items-center gap-2 mb-2">
+            <span class="px-2.5 py-1 bg-isatu-gold text-isatu-blue font-extrabold text-[11px] rounded-md uppercase tracking-wider">
+              Executive Administration (Level 3)
+            </span>
+            <span class="text-xs text-yellow-300 font-semibold">Campus Hotel Director: Dr. Roberto Mendoza</span>
+          </div>
+          <h1 class="text-2xl sm:text-3xl font-extrabold font-heading text-white">Executive Management & Oversight</h1>
+          <p class="text-xs sm:text-sm text-slate-200 mt-1">Supervise revenue performance, room inventory CRUD, staff accounts, discount policies, and audit logs.</p>
+        </div>
+
+        <div class="flex flex-wrap items-center gap-3">
+          <button onclick="openAdminRoomModal()" class="px-4 py-2.5 bg-isatu-gold text-isatu-blue hover:bg-yellow-400 rounded-xl font-bold text-xs shadow-lg transition-all flex items-center gap-2">
+            <i data-lucide="plus-circle" class="w-4 h-4"></i>
+            <span>Add New Room</span>
+          </button>
+          <button onclick="openAdminStaffModal()" class="px-4 py-2.5 bg-white/15 hover:bg-white/25 text-white rounded-xl font-bold text-xs backdrop-blur transition-all flex items-center gap-2 border border-white/20">
+            <i data-lucide="user-plus" class="w-4 h-4"></i>
+            <span>Add Staff Account</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Financial & Occupancy Executive KPI Cards -->
+      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-5">
+        <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm flex items-center gap-4">
+          <div class="w-12 h-12 rounded-xl bg-emerald-100 text-emerald-800 flex items-center justify-center font-bold flex-shrink-0">
+            <i data-lucide="banknote" class="w-6 h-6"></i>
+          </div>
+          <div>
+            <span class="text-xs font-bold text-slate-400 uppercase tracking-wider block">Collected Revenue</span>
+            <span id="adminStatRevenue" class="text-2xl font-extrabold text-emerald-700">₱0</span>
+            <span class="text-[11px] text-emerald-600 font-semibold block">Deposits & payments received</span>
+          </div>
+        </div>
+
+        <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm flex items-center gap-4">
+          <div class="w-12 h-12 rounded-xl bg-amber-100 text-amber-800 flex items-center justify-center font-bold flex-shrink-0">
+            <i data-lucide="clock" class="w-6 h-6"></i>
+          </div>
+          <div>
+            <span class="text-xs font-bold text-slate-400 uppercase tracking-wider block">Pending Receivables</span>
+            <span id="adminStatReceivables" class="text-2xl font-extrabold text-amber-700">₱0</span>
+            <span class="text-[11px] text-amber-600 font-semibold block">Balances due at check-in</span>
+          </div>
+        </div>
+
+        <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm flex items-center gap-4">
+          <div class="w-12 h-12 rounded-xl bg-blue-100 text-isatu-blue flex items-center justify-center font-bold flex-shrink-0">
+            <i data-lucide="pie-chart" class="w-6 h-6"></i>
+          </div>
+          <div>
+            <span class="text-xs font-bold text-slate-400 uppercase tracking-wider block">Occupancy Rate</span>
+            <span id="adminStatOccupancy" class="text-2xl font-extrabold text-isatu-blue">0%</span>
+            <span class="text-[11px] text-slate-500 font-medium block">Campus facility capacity</span>
+          </div>
+        </div>
+
+        <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm flex items-center gap-4">
+          <div class="w-12 h-12 rounded-xl bg-purple-100 text-purple-800 flex items-center justify-center font-bold flex-shrink-0">
+            <i data-lucide="bed-double" class="w-6 h-6"></i>
+          </div>
+          <div>
+            <span class="text-xs font-bold text-slate-400 uppercase tracking-wider block">Inventory Units</span>
+            <span id="adminStatRoomsCount" class="text-2xl font-extrabold text-slate-900">0</span>
+            <span class="text-[11px] text-blue-600 font-semibold block">Active registered rooms</span>
+          </div>
+        </div>
+
+        <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm flex items-center gap-4">
+          <div class="w-12 h-12 rounded-xl bg-slate-100 text-slate-800 flex items-center justify-center font-bold flex-shrink-0">
+            <i data-lucide="shield-check" class="w-6 h-6"></i>
+          </div>
+          <div>
+            <span class="text-xs font-bold text-slate-400 uppercase tracking-wider block">Staff Accounts</span>
+            <span id="adminStatStaffCount" class="text-2xl font-extrabold text-slate-900">0</span>
+            <span class="text-[11px] text-slate-500 font-medium block">Front desk & security</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- ADMIN TABBED CONSOLE -->
+      <div class="bg-white rounded-3xl border border-slate-200 shadow-sm overflow-hidden">
+        
+        <!-- Navigation Tab Headers -->
+        <div class="border-b border-slate-200 px-6 pt-4 flex flex-wrap gap-2 sm:gap-6 bg-slate-50/50">
+          <button onclick="switchAdminTab('analytics', this)" class="admin-tab-btn active pb-3 text-xs sm:text-sm font-bold text-isatu-blue border-b-2 border-isatu-blue flex items-center gap-2">
+            <i data-lucide="bar-chart-3" class="w-4 h-4"></i>
+            <span>Financial & Occupancy Analytics</span>
+          </button>
+          <button onclick="switchAdminTab('inventory', this)" class="admin-tab-btn pb-3 text-xs sm:text-sm font-semibold text-slate-500 hover:text-slate-800 border-b-2 border-transparent flex items-center gap-2">
+            <i data-lucide="hotel" class="w-4 h-4"></i>
+            <span>Room Inventory Management</span>
+          </button>
+          <button onclick="switchAdminTab('staff', this)" class="admin-tab-btn pb-3 text-xs sm:text-sm font-semibold text-slate-500 hover:text-slate-800 border-b-2 border-transparent flex items-center gap-2">
+            <i data-lucide="users-2" class="w-4 h-4"></i>
+            <span>Staff & User Accounts</span>
+          </button>
+          <button onclick="switchAdminTab('discounts', this)" class="admin-tab-btn pb-3 text-xs sm:text-sm font-semibold text-slate-500 hover:text-slate-800 border-b-2 border-transparent flex items-center gap-2">
+            <i data-lucide="percent" class="w-4 h-4"></i>
+            <span>Institutional Discount Policy</span>
+          </button>
+          <button onclick="switchAdminTab('audit', this)" class="admin-tab-btn pb-3 text-xs sm:text-sm font-semibold text-slate-500 hover:text-slate-800 border-b-2 border-transparent flex items-center gap-2">
+            <i data-lucide="history" class="w-4 h-4"></i>
+            <span>System Audit Trail</span>
+          </button>
+        </div>
+
+        <!-- TAB CONTENT 1: ANALYTICS -->
+        <div id="adminTabContent-analytics" class="p-6 space-y-6">
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <!-- Revenue by Affiliation -->
+            <div class="p-5 rounded-2xl border border-slate-200 bg-slate-50/50 space-y-4">
+              <h4 class="font-bold text-sm text-slate-900 font-heading flex items-center gap-2">
+                <i data-lucide="pie-chart" class="w-4 h-4 text-isatu-blue"></i>
+                <span>Revenue Breakdown by Affiliation</span>
+              </h4>
+              <div id="analyticsAffiliationList" class="space-y-3 text-xs">
+                <!-- Injected via JS -->
+              </div>
+            </div>
+
+            <!-- Payment Channels & Quick Stats -->
+            <div class="p-5 rounded-2xl border border-slate-200 bg-slate-50/50 space-y-4">
+              <h4 class="font-bold text-sm text-slate-900 font-heading flex items-center gap-2">
+                <i data-lucide="wallet" class="w-4 h-4 text-isatu-blue"></i>
+                <span>Payment Channel Distribution</span>
+              </h4>
+              <div id="analyticsPaymentChannels" class="space-y-3 text-xs">
+                <!-- Injected via JS -->
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- TAB CONTENT 2: ROOM INVENTORY CRUD -->
+        <div id="adminTabContent-inventory" class="hidden p-6 space-y-4">
+          <div class="flex justify-between items-center">
+            <div>
+              <h4 class="font-bold text-base text-slate-900 font-heading">Campus Hotel Room Inventory</h4>
+              <p class="text-xs text-slate-500">Create, edit nightly rates, adjust amenities, and set maintenance status.</p>
+            </div>
+            <button onclick="openAdminRoomModal()" class="px-4 py-2 bg-isatu-blue text-white rounded-xl text-xs font-bold hover:bg-blue-900 flex items-center gap-1.5 shadow">
+              <i data-lucide="plus" class="w-4 h-4"></i>
+              <span>Add New Room</span>
+            </button>
+          </div>
+
+          <div class="overflow-x-auto">
+            <table class="w-full text-left border-collapse">
+              <thead>
+                <tr class="bg-slate-50 border-b border-slate-200 text-slate-500 font-bold text-[11px] uppercase tracking-wider">
+                  <th class="px-4 py-3">Room ID & Name</th>
+                  <th class="px-4 py-3">Category</th>
+                  <th class="px-4 py-3">Capacity & Size</th>
+                  <th class="px-4 py-3">Nightly Base Rate</th>
+                  <th class="px-4 py-3">Current Status</th>
+                  <th class="px-4 py-3 text-right">Actions</th>
+                </tr>
+              </thead>
+              <tbody id="adminInventoryTableBody">
+                <!-- Injected via JS -->
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- TAB CONTENT 3: STAFF & USER ACCOUNTS -->
+        <div id="adminTabContent-staff" class="hidden p-6 space-y-4">
+          <div class="flex justify-between items-center">
+            <div>
+              <h4 class="font-bold text-base text-slate-900 font-heading">Staff & Personnel Directory</h4>
+              <p class="text-xs text-slate-500">Manage receptionist accounts, role privileges, and assigned duty shifts.</p>
+            </div>
+            <button onclick="openAdminStaffModal()" class="px-4 py-2 bg-isatu-blue text-white rounded-xl text-xs font-bold hover:bg-blue-900 flex items-center gap-1.5 shadow">
+              <i data-lucide="user-plus" class="w-4 h-4"></i>
+              <span>Register Staff Member</span>
+            </button>
+          </div>
+
+          <div class="overflow-x-auto">
+            <table class="w-full text-left border-collapse">
+              <thead>
+                <tr class="bg-slate-50 border-b border-slate-200 text-slate-500 font-bold text-[11px] uppercase tracking-wider">
+                  <th class="px-4 py-3">Employee Name</th>
+                  <th class="px-4 py-3">Email Address</th>
+                  <th class="px-4 py-3">Assigned Role</th>
+                  <th class="px-4 py-3">Duty Shift</th>
+                  <th class="px-4 py-3">Account Status</th>
+                  <th class="px-4 py-3 text-right">Actions</th>
+                </tr>
+              </thead>
+              <tbody id="adminStaffTableBody">
+                <!-- Injected via JS -->
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- TAB CONTENT 4: INSTITUTIONAL DISCOUNT MATRIX -->
+        <div id="adminTabContent-discounts" class="hidden p-6 space-y-6">
+          <div>
+            <h4 class="font-bold text-base text-slate-900 font-heading">Institutional Rate & Discount Policy Configuration</h4>
+            <p class="text-xs text-slate-500">Changes will be dynamically applied across all future bookings and calculation engines.</p>
+          </div>
+
+          <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            <div class="p-5 rounded-2xl border border-slate-200 bg-slate-50 space-y-2">
+              <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider">ISAT U Faculty & Staff (%)</label>
+              <div class="flex items-center gap-2">
+                <input type="number" id="cfgDiscountFaculty" min="0" max="100" class="w-full px-3 py-2 border border-slate-300 rounded-xl text-sm font-bold text-slate-900 focus:outline-none focus:ring-2 focus:ring-isatu-blue" />
+                <span class="font-bold text-slate-600">%</span>
+              </div>
+              <p class="text-[11px] text-slate-500">Requires valid ISAT U Employee ID</p>
+            </div>
+
+            <div class="p-5 rounded-2xl border border-slate-200 bg-slate-50 space-y-2">
+              <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider">ISAT U Enrolled Student (%)</label>
+              <div class="flex items-center gap-2">
+                <input type="number" id="cfgDiscountStudent" min="0" max="100" class="w-full px-3 py-2 border border-slate-300 rounded-xl text-sm font-bold text-slate-900 focus:outline-none focus:ring-2 focus:ring-isatu-blue" />
+                <span class="font-bold text-slate-600">%</span>
+              </div>
+              <p class="text-[11px] text-slate-500">Requires valid Student ID / COR</p>
+            </div>
+
+            <div class="p-5 rounded-2xl border border-slate-200 bg-slate-50 space-y-2">
+              <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider">ISAT U Alumni Member (%)</label>
+              <div class="flex items-center gap-2">
+                <input type="number" id="cfgDiscountAlumni" min="0" max="100" class="w-full px-3 py-2 border border-slate-300 rounded-xl text-sm font-bold text-slate-900 focus:outline-none focus:ring-2 focus:ring-isatu-blue" />
+                <span class="font-bold text-slate-600">%</span>
+              </div>
+              <p class="text-[11px] text-slate-500">Requires Alumni Association Card</p>
+            </div>
+
+            <div class="p-5 rounded-2xl border border-slate-200 bg-slate-50 space-y-2">
+              <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider">LGU / Partner Agency (%)</label>
+              <div class="flex items-center gap-2">
+                <input type="number" id="cfgDiscountPartner" min="0" max="100" class="w-full px-3 py-2 border border-slate-300 rounded-xl text-sm font-bold text-slate-900 focus:outline-none focus:ring-2 focus:ring-isatu-blue" />
+                <span class="font-bold text-slate-600">%</span>
+              </div>
+              <p class="text-[11px] text-slate-500">Official university partner discount</p>
+            </div>
+          </div>
+
+          <div class="flex justify-end">
+            <button onclick="saveDiscountSettings()" class="px-6 py-2.5 bg-isatu-blue text-white rounded-xl text-xs font-bold hover:bg-blue-900 shadow flex items-center gap-2">
+              <i data-lucide="save" class="w-4 h-4"></i>
+              <span>Save Institutional Discount Matrix</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- TAB CONTENT 5: SYSTEM AUDIT TRAIL -->
+        <div id="adminTabContent-audit" class="hidden p-6 space-y-4">
+          <div class="flex justify-between items-center">
+            <div>
+              <h4 class="font-bold text-base text-slate-900 font-heading">Security Audit Trail & Transaction Logs</h4>
+              <p class="text-xs text-slate-500">Non-repudiation audit tracking all front-desk check-ins, payment verifications, rate updates, and cancellations.</p>
+            </div>
+            <button onclick="clearAuditLogs()" class="px-3 py-1.5 border border-slate-300 hover:bg-slate-100 rounded-lg text-xs font-semibold text-slate-700">
+              Clear Old Logs
+            </button>
+          </div>
+
+          <div class="border border-slate-200 rounded-2xl overflow-hidden">
+            <div id="adminAuditLogContainer" class="divide-y divide-slate-100 max-h-96 overflow-y-auto font-mono text-xs">
+              <!-- Injected via JS -->
+            </div>
+          </div>
+        </div>
+
+      </div>
+
+    </div>
+  </main>
+
+  <!-- FOOTER -->
+  <footer class="bg-slate-950 text-slate-400 py-10 border-t border-slate-800 text-xs">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div class="flex flex-col md:flex-row justify-between items-center gap-6">
+        
+        <div class="flex items-center gap-3">
+          <div class="w-10 h-10 rounded-lg bg-isatu-gold text-isatu-blue font-extrabold flex items-center justify-center text-lg shadow">
+            MH
+          </div>
+          <div>
+            <span class="font-bold text-white text-sm block font-heading">ISAT U Dumangas Campus Mini Hotel</span>
+            <span class="text-slate-500">Official Web Registration & Reservation Portal</span>
+          </div>
+        </div>
+
+        <div class="text-center md:text-right text-slate-500">
+          <p>© 2026 Iloilo Science and Technology University - Dumangas Campus. All Rights Reserved.</p>
+          <p class="mt-1">Developed for Campus Hospitality Management System.</p>
+        </div>
+
+      </div>
+    </div>
+  </footer>
+
+  <!-- MULTI-STEP REGISTRATION & RESERVATION MODAL -->
+  <div id="reservationModal" class="fixed inset-0 z-50 bg-slate-900/70 backdrop-blur-sm hidden items-center justify-center p-4 overflow-y-auto">
+    <div class="bg-white w-full max-w-2xl rounded-3xl shadow-2xl overflow-hidden border border-slate-200 flex flex-col my-auto max-h-[90vh]">
+      
+      <!-- Modal Header -->
+      <div class="bg-isatu-blue text-white p-6 border-b border-yellow-400/30 flex justify-between items-center">
+        <div>
+          <span class="text-xs font-bold text-isatu-gold uppercase tracking-wider block">Online Guest Portal</span>
+          <h3 class="font-extrabold text-xl font-heading text-white">Room Registration & Booking</h3>
+        </div>
+        <button onclick="closeReservationModal()" class="w-9 h-9 rounded-full bg-white/10 hover:bg-white/20 text-white flex items-center justify-center transition-colors">
+          <i data-lucide="x" class="w-5 h-5"></i>
+        </button>
+      </div>
+
+      <!-- Wizard Progress Step Bar -->
+      <div class="bg-slate-50 px-6 py-4 border-b border-slate-200">
+        <div class="flex items-center justify-between gap-2 max-w-md mx-auto">
+          <div class="flex items-center gap-2">
+            <div id="stepBadge-1" class="w-8 h-8 rounded-full bg-isatu-gold text-isatu-blue flex items-center justify-center font-bold text-xs">1</div>
+            <span class="text-xs font-bold text-slate-700 hidden sm:inline">Guest Info</span>
+          </div>
+          <div id="stepLine-1" class="h-1 bg-slate-200 flex-1 rounded"></div>
+          
+          <div class="flex items-center gap-2">
+            <div id="stepBadge-2" class="w-8 h-8 rounded-full bg-slate-200 text-slate-500 flex items-center justify-center font-bold text-xs">2</div>
+            <span class="text-xs font-bold text-slate-700 hidden sm:inline">Room & Dates</span>
+          </div>
+          <div id="stepLine-2" class="h-1 bg-slate-200 flex-1 rounded"></div>
+
+          <div class="flex items-center gap-2">
+            <div id="stepBadge-3" class="w-8 h-8 rounded-full bg-slate-200 text-slate-500 flex items-center justify-center font-bold text-xs">3</div>
+            <span class="text-xs font-bold text-slate-700 hidden sm:inline">Payment & Review</span>
+          </div>
+          <div id="stepLine-3" class="h-1 bg-slate-200 flex-1 rounded"></div>
+
+          <div class="flex items-center gap-2">
+            <div id="stepBadge-4" class="w-8 h-8 rounded-full bg-slate-200 text-slate-500 flex items-center justify-center font-bold text-xs">4</div>
+            <span class="text-xs font-bold text-slate-700 hidden sm:inline">Pass</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Modal Body Wizard Container -->
+      <div class="p-6 overflow-y-auto flex-grow space-y-6">
+        
+        <!-- STEP 1: GUEST INFORMATION -->
+        <div id="wizardStep-1" class="space-y-4">
+          <h4 class="font-bold text-slate-900 text-base border-b border-slate-100 pb-2">Step 1: Guest Personal & Institutional Profile</h4>
+
+          <div>
+            <label class="block text-xs font-bold text-slate-700 mb-1">Institutional Category / Affiliation *</label>
+            <select id="resAffiliation" onchange="onAffiliationChange()" class="w-full px-3.5 py-2.5 bg-white border border-slate-300 rounded-xl text-sm font-medium focus:ring-2 focus:ring-isatu-blue focus:outline-none">
+              <option value="student">ISATU Student (20% Discount)</option>
+              <option value="faculty">ISATU Faculty / Staff (20% Discount)</option>
+              <option value="alumni">ISATU Alumni (10% Discount)</option>
+              <option value="external" selected>External Visitor / Guest</option>
+            </select>
+            <div id="discountBadge" class="mt-2 text-xs font-medium text-slate-500">Standard Guest Rate</div>
+          </div>
+
+          <div>
+            <label class="block text-xs font-bold text-slate-700 mb-1">Full Name *</label>
+            <input type="text" id="resGuestName" placeholder="e.g. Maria Santos" class="w-full px-3.5 py-2.5 border border-slate-300 rounded-xl text-sm focus:ring-2 focus:ring-isatu-blue focus:outline-none" />
+          </div>
+
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+              <label class="block text-xs font-bold text-slate-700 mb-1">Email Address *</label>
+              <input type="email" id="resEmail" placeholder="m.santos@email.com" class="w-full px-3.5 py-2.5 border border-slate-300 rounded-xl text-sm focus:ring-2 focus:ring-isatu-blue focus:outline-none" />
+            </div>
+            <div>
+              <label class="block text-xs font-bold text-slate-700 mb-1">Contact Mobile Number *</label>
+              <input type="tel" id="resPhone" placeholder="0917-XXX-XXXX" class="w-full px-3.5 py-2.5 border border-slate-300 rounded-xl text-sm focus:ring-2 focus:ring-isatu-blue focus:outline-none" />
+            </div>
+          </div>
+        </div>
+
+        <!-- STEP 2: ROOM SELECTION & DATES -->
+        <div id="wizardStep-2" class="hidden space-y-4">
+          <h4 class="font-bold text-slate-900 text-base border-b border-slate-100 pb-2">Step 2: Room Choice & Booking Dates</h4>
+
+          <div>
+            <label class="block text-xs font-bold text-slate-700 mb-1">Select Room or Function Hall *</label>
+            <select id="resRoomSelect" onchange="onRoomSelectChange()" class="w-full px-3.5 py-2.5 bg-white border border-slate-300 rounded-xl text-sm font-medium focus:ring-2 focus:ring-isatu-blue focus:outline-none">
+              <!-- Populated via JS -->
+            </select>
+          </div>
+
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+              <label class="block text-xs font-bold text-slate-700 mb-1">Check-in Date *</label>
+              <input type="date" id="resCheckIn" class="w-full px-3.5 py-2.5 border border-slate-300 rounded-xl text-sm focus:ring-2 focus:ring-isatu-blue focus:outline-none" />
+            </div>
+            <div>
+              <label class="block text-xs font-bold text-slate-700 mb-1">Check-out Date *</label>
+              <input type="date" id="resCheckOut" class="w-full px-3.5 py-2.5 border border-slate-300 rounded-xl text-sm focus:ring-2 focus:ring-isatu-blue focus:outline-none" />
+            </div>
+          </div>
+
+          <div>
+            <label class="block text-xs font-bold text-slate-700 mb-1">Number of Occupants</label>
+            <input type="number" id="resGuestsCount" min="1" max="60" value="1" class="w-full px-3.5 py-2.5 border border-slate-300 rounded-xl text-sm focus:ring-2 focus:ring-isatu-blue focus:outline-none" />
+          </div>
+        </div>
+
+        <!-- STEP 3: PAYMENT & REVIEW -->
+        <div id="wizardStep-3" class="hidden space-y-4">
+          <h4 class="font-bold text-slate-900 text-base border-b border-slate-100 pb-2">Step 3: Review Booking & Submit Payment</h4>
+
+          <!-- Deposit Policy Notice -->
+          <div class="bg-amber-50 p-3.5 rounded-2xl border border-amber-200 flex items-start gap-3">
+            <i data-lucide="info" class="w-5 h-5 text-amber-600 flex-shrink-0 mt-0.5"></i>
+            <div class="text-xs text-amber-900">
+              <span class="font-extrabold block mb-0.5">ISAT U Dumangas Campus Mini Hotel — Advance Deposit Policy</span>
+              <span>A minimum <strong>50% downpayment</strong> or <strong>100% full payment</strong> is required to confirm and hold your reservation. Deposits must be sent via GCash or Landbank transfer with a valid transaction reference number.</span>
+            </div>
+          </div>
+
+          <!-- Price Calculation Summary Box -->
+          <div class="bg-slate-50 p-4 rounded-2xl border border-slate-200 space-y-2 text-xs">
+            <div class="flex justify-between font-medium">
+              <span class="text-slate-500">Accommodation:</span>
+              <span id="summaryRoomName" class="font-bold text-slate-900">-</span>
+            </div>
+            <div class="flex justify-between font-medium">
+              <span class="text-slate-500">Duration:</span>
+              <span id="summaryNights" class="font-bold text-slate-900">-</span>
+            </div>
+            <div class="flex justify-between font-medium">
+              <span class="text-slate-500">Nightly Rate:</span>
+              <span id="summaryRate" class="font-bold text-slate-900">-</span>
+            </div>
+            <div class="flex justify-between font-medium text-emerald-600">
+              <span>Applied Discount:</span>
+              <span id="summaryDiscount" class="font-bold">-</span>
+            </div>
+            <div class="pt-2 border-t border-slate-200 flex justify-between items-center text-sm font-extrabold text-isatu-blue">
+              <span>Grand Total Amount:</span>
+              <span id="summaryGrandTotal" class="text-lg text-isatu-blue">₱0</span>
+            </div>
+          </div>
+
+          <!-- Payment Term Selection -->
+          <div>
+            <label class="block text-xs font-bold text-slate-700 mb-2">Select Payment Term *</label>
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <!-- Downpayment Card -->
+              <label class="relative flex flex-col p-4 rounded-2xl border-2 border-slate-200 bg-white cursor-pointer hover:border-amber-400 transition-all has-[:checked]:border-amber-500 has-[:checked]:bg-amber-50 has-[:checked]:shadow-md">
+                <input type="radio" name="paymentTerm" value="downpayment" onchange="calculatePricing()" class="absolute top-3 right-3 text-amber-600 focus:ring-amber-500" />
+                <div class="flex items-center gap-2 mb-2">
+                  <span class="w-8 h-8 rounded-lg bg-amber-100 text-amber-700 flex items-center justify-center font-extrabold text-sm">50%</span>
+                  <span class="font-extrabold text-xs text-slate-900">Required Downpayment</span>
+                </div>
+                <span id="dpCardAmount" class="text-lg font-extrabold text-amber-700">₱0</span>
+                <span class="text-[10px] text-slate-500 mt-1">Pay 50% now to hold your room. Remaining 50% balance due at front desk upon check-in.</span>
+              </label>
+
+              <!-- Full Payment Card -->
+              <label class="relative flex flex-col p-4 rounded-2xl border-2 border-slate-200 bg-white cursor-pointer hover:border-emerald-400 transition-all has-[:checked]:border-emerald-500 has-[:checked]:bg-emerald-50 has-[:checked]:shadow-md">
+                <input type="radio" name="paymentTerm" value="full" checked onchange="calculatePricing()" class="absolute top-3 right-3 text-emerald-600 focus:ring-emerald-500" />
+                <div class="flex items-center gap-2 mb-2">
+                  <span class="w-8 h-8 rounded-lg bg-emerald-100 text-emerald-700 flex items-center justify-center font-extrabold text-xs">100%</span>
+                  <span class="font-extrabold text-xs text-slate-900">Full Payment</span>
+                </div>
+                <span id="fpCardAmount" class="text-lg font-extrabold text-emerald-700">₱0</span>
+                <span class="text-[10px] text-slate-500 mt-1">Pay in full for express zero-balance check-in. No balance due at arrival.</span>
+              </label>
+            </div>
+          </div>
+
+          <!-- Deposit/Balance Summary -->
+          <div class="bg-isatu-blue/5 p-3.5 rounded-2xl border border-isatu-blue/20 space-y-1.5 text-xs">
+            <div class="flex justify-between font-bold">
+              <span class="text-slate-600">Payment Term:</span>
+              <span id="summaryPaymentTermLabel" class="text-isatu-blue">Full Payment (100%)</span>
+            </div>
+            <div class="flex justify-between font-extrabold text-isatu-blue text-sm">
+              <span>Amount Payable Now (Deposit):</span>
+              <span id="summaryAmountDueNow" class="text-lg">₱0</span>
+            </div>
+            <div class="flex justify-between font-medium text-amber-700">
+              <span>Remaining Balance Due at Check-In:</span>
+              <span id="summaryBalanceDue">₱0</span>
+            </div>
+          </div>
+
+          <!-- Payment Channel Selection -->
+          <div>
+            <label class="block text-xs font-bold text-slate-700 mb-2">Payment Channel *</label>
+            <div class="space-y-2">
+              <label class="flex items-center gap-3 p-3 rounded-xl border border-slate-200 bg-white cursor-pointer hover:border-isatu-blue">
+                <input type="radio" name="payment" value="gcash" checked onchange="toggleGcashInput(true)" class="text-isatu-blue focus:ring-isatu-blue" />
+                <div>
+                  <span class="font-bold text-xs text-slate-900 block">GCash E-Wallet Transfer</span>
+                  <span class="text-[11px] text-slate-500">Send deposit to ISAT U Dumangas Mini Hotel: <strong class="text-isatu-blue">0917-555-8888</strong></span>
+                </div>
+              </label>
+
+              <label class="flex items-center gap-3 p-3 rounded-xl border border-slate-200 bg-white cursor-pointer hover:border-isatu-blue">
+                <input type="radio" name="payment" value="landbank" onchange="toggleGcashInput(true)" class="text-isatu-blue focus:ring-isatu-blue" />
+                <div>
+                  <span class="font-bold text-xs text-slate-900 block">Landbank Institutional Transfer</span>
+                  <span class="text-[11px] text-slate-500">ISAT U Trust Fund Account No: <strong class="text-isatu-blue">1234-5678-90</strong></span>
+                </div>
+              </label>
+
+              <div id="gcashInputContainer" class="p-3 bg-blue-50/70 border border-blue-200 rounded-xl space-y-2">
+                <label class="block text-[11px] font-bold text-blue-900">Transaction Reference Number *</label>
+                <input 
+                  type="text" 
+                  id="resGcashRef" 
+                  placeholder="e.g. 9024-8831-2391" 
+                  class="w-full px-3 py-2 text-xs rounded-lg border border-blue-300 bg-white focus:outline-none focus:ring-2 focus:ring-isatu-blue font-mono uppercase"
+                />
+                <p class="text-[10px] text-blue-700">Please provide the reference number from your GCash/Landbank confirmation SMS or receipt. This is <strong>required</strong> to complete your booking.</p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- STEP 4: PASS VOUCHER -->
+        <div id="wizardStep-4" class="hidden">
+          <div id="confirmationVoucherContainer">
+            <!-- Rendered via JS -->
+          </div>
+        </div>
+
+      </div>
+
+      <!-- Modal Controls Footer -->
+      <div class="bg-slate-50 px-6 py-4 border-t border-slate-200 flex justify-between items-center">
+        <button 
+          id="wizardPrevBtn" 
+          onclick="prevStep()" 
+          class="px-5 py-2 bg-slate-200 text-slate-700 rounded-xl font-bold text-xs hover:bg-slate-300 transition-all"
+        >
+          Back
+        </button>
+
+        <div class="ml-auto flex gap-2">
+          <button 
+            id="wizardNextBtn" 
+            onclick="nextStep()" 
+            class="px-6 py-2.5 bg-isatu-blue text-white rounded-xl font-bold text-xs hover:bg-blue-900 transition-all shadow flex items-center gap-1"
+          >
+            <span>Continue</span>
+            <i data-lucide="chevron-right" class="w-4 h-4"></i>
+          </button>
+
+          <button 
+            id="wizardSubmitBtn" 
+            onclick="submitReservation()" 
+            class="px-6 py-2.5 bg-isatu-gold text-isatu-blue rounded-xl font-bold text-xs hover:bg-yellow-400 transition-all shadow flex items-center gap-1 hidden"
+          >
+            <span>Confirm & Generate Booking Pass</span>
+            <i data-lucide="check" class="w-4 h-4"></i>
+          </button>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- RESERVATION TRACKER MODAL -->
+  <div id="trackerModal" class="fixed inset-0 z-50 bg-slate-900/70 backdrop-blur-sm hidden items-center justify-center p-4 overflow-y-auto">
+    <div class="bg-white w-full max-w-lg rounded-3xl shadow-2xl overflow-hidden border border-slate-200 flex flex-col my-auto">
+      
+      <div class="bg-isatu-blue text-white p-6 border-b border-yellow-400/30 flex justify-between items-center">
+        <div>
+          <span class="text-xs font-bold text-isatu-gold uppercase tracking-wider block">Lookup System</span>
+          <h3 class="font-extrabold text-xl font-heading text-white">Track Reservation Status</h3>
+        </div>
+        <button onclick="closeTrackerModal()" class="w-9 h-9 rounded-full bg-white/10 hover:bg-white/20 text-white flex items-center justify-center transition-colors">
+          <i data-lucide="x" class="w-5 h-5"></i>
+        </button>
+      </div>
+
+      <div class="p-6 space-y-4">
+        <div>
+          <label class="block text-xs font-bold text-slate-700 mb-1">Enter Reference Code or Email</label>
+          <div class="flex gap-2">
+            <input 
+              type="text" 
+              id="trackerSearchQuery" 
+              placeholder="e.g. ISATU-MH-2026-9812" 
+              class="flex-1 px-3.5 py-2.5 border border-slate-300 rounded-xl text-sm focus:ring-2 focus:ring-isatu-blue focus:outline-none"
+            />
+            <button 
+              onclick="searchReservation()" 
+              class="px-5 py-2.5 bg-isatu-blue text-white rounded-xl font-bold text-xs hover:bg-blue-900 transition-all flex items-center gap-1 shadow"
+            >
+              <i data-lucide="search" class="w-4 h-4"></i>
+              <span>Search</span>
+            </button>
+          </div>
+        </div>
+
+        <div id="trackerResults" class="space-y-3 pt-2">
+          <!-- Results injected via JS -->
+        </div>
+      </div>
+
+  </div>
+  </div>
+
+  <!-- RECEPTIONIST PAYMENT VERIFICATION MODAL -->
+  <div id="paymentModal" class="fixed inset-0 z-50 bg-slate-900/70 backdrop-blur-sm hidden items-center justify-center p-4 overflow-y-auto">
+    <div class="bg-white w-full max-w-lg rounded-3xl shadow-2xl overflow-hidden border border-slate-200 flex flex-col my-auto">
+      <div class="bg-isatu-blue text-white p-5 border-b border-yellow-400/30 flex justify-between items-center">
+        <div class="flex items-center gap-2">
+          <div class="w-8 h-8 rounded-lg bg-isatu-gold text-isatu-blue flex items-center justify-center font-bold">
+            <i data-lucide="check-check" class="w-4 h-4"></i>
+          </div>
+          <div>
+            <span class="text-[11px] font-bold text-isatu-gold uppercase tracking-wider block">Front Desk Audit</span>
+            <h3 class="font-extrabold text-lg font-heading text-white">Verify Guest Payment</h3>
+          </div>
+        </div>
+        <button onclick="closePaymentModal()" class="w-8 h-8 rounded-full bg-white/10 hover:bg-white/20 text-white flex items-center justify-center transition-colors">
+          <i data-lucide="x" class="w-4 h-4"></i>
+        </button>
+      </div>
+
+      <div class="p-6 space-y-4" id="paymentModalBody">
+        <!-- Injected via JS -->
+      </div>
+    </div>
+  </div>
+
+  <!-- ADMIN ADD/EDIT ROOM MODAL -->
+  <div id="adminRoomModal" class="fixed inset-0 z-50 bg-slate-900/70 backdrop-blur-sm hidden items-center justify-center p-4 overflow-y-auto">
+    <div class="bg-white w-full max-w-xl rounded-3xl shadow-2xl overflow-hidden border border-slate-200 flex flex-col my-auto">
+      <div class="bg-slate-900 text-white p-5 border-b border-yellow-400/30 flex justify-between items-center">
+        <div class="flex items-center gap-2">
+          <div class="w-8 h-8 rounded-lg bg-isatu-gold text-isatu-blue flex items-center justify-center font-bold">
+            <i data-lucide="hotel" class="w-4 h-4"></i>
+          </div>
+          <div>
+            <span class="text-[11px] font-bold text-isatu-gold uppercase tracking-wider block">Room Inventory CRUD</span>
+            <h3 id="adminRoomModalTitle" class="font-extrabold text-lg font-heading text-white">Register New Accommodation</h3>
+          </div>
+        </div>
+        <button onclick="closeAdminRoomModal()" class="w-8 h-8 rounded-full bg-white/10 hover:bg-white/20 text-white flex items-center justify-center transition-colors">
+          <i data-lucide="x" class="w-4 h-4"></i>
+        </button>
+      </div>
+
+      <form id="adminRoomForm" onsubmit="handleSaveRoom(event)" class="p-6 space-y-4 text-xs">
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div>
+            <label class="block font-bold text-slate-700 mb-1">Room Code / ID *</label>
+            <input type="text" id="mRoomId" required placeholder="e.g. rm-203" class="w-full px-3.5 py-2.5 border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-isatu-blue font-mono uppercase" />
+          </div>
+          <div>
+            <label class="block font-bold text-slate-700 mb-1">Category *</label>
+            <select id="mRoomCategory" required class="w-full px-3.5 py-2.5 bg-white border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-isatu-blue">
+              <option value="standard">Standard Room</option>
+              <option value="deluxe">Deluxe Executive Suite</option>
+              <option value="dorm">Delegate Dormitory</option>
+              <option value="function">Function / Seminar Hall</option>
+            </select>
+          </div>
+        </div>
+
+        <div>
+          <label class="block font-bold text-slate-700 mb-1">Room Title & Specification *</label>
+          <input type="text" id="mRoomName" required placeholder="e.g. Deluxe Room (King Bed with Balcony)" class="w-full px-3.5 py-2.5 border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-isatu-blue" />
+        </div>
+
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+          <div>
+            <label class="block font-bold text-slate-700 mb-1">Nightly Base Rate (₱) *</label>
+            <input type="number" id="mRoomPrice" required min="500" placeholder="1800" class="w-full px-3.5 py-2.5 border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-isatu-blue font-bold text-isatu-blue" />
+          </div>
+          <div>
+            <label class="block font-bold text-slate-700 mb-1">Capacity *</label>
+            <input type="text" id="mRoomCapacity" required placeholder="e.g. 2 Guests" class="w-full px-3.5 py-2.5 border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-isatu-blue" />
+          </div>
+          <div>
+            <label class="block font-bold text-slate-700 mb-1">Room Size</label>
+            <input type="text" id="mRoomSize" placeholder="e.g. 30 sqm" class="w-full px-3.5 py-2.5 border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-isatu-blue" />
+          </div>
+        </div>
+
+        <div>
+          <label class="block font-bold text-slate-700 mb-1">Amenities (comma-separated)</label>
+          <input type="text" id="mRoomAmenities" placeholder="Air Conditioning, Free Wi-Fi, Smart TV, Hot Shower, Mini Fridge" class="w-full px-3.5 py-2.5 border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-isatu-blue" />
+        </div>
+
+        <div>
+          <label class="block font-bold text-slate-700 mb-1">Description</label>
+          <textarea id="mRoomDescription" rows="2" placeholder="Brief description of the room unit..." class="w-full px-3.5 py-2.5 border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-isatu-blue"></textarea>
+        </div>
+
+        <div>
+          <label class="block font-bold text-slate-700 mb-1">Operational Readiness Status</label>
+          <select id="mRoomStatus" class="w-full px-3.5 py-2.5 bg-white border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-isatu-blue">
+            <option value="Available">Available for Booking</option>
+            <option value="Booked">Occupied / Booked</option>
+            <option value="Turnover">Needs Turnover</option>
+            <option value="Maintenance">Under Maintenance (Out of Order)</option>
+          </select>
+        </div>
+
+        <div class="pt-4 border-t border-slate-200 flex justify-end gap-2">
+          <button type="button" onclick="closeAdminRoomModal()" class="px-4 py-2 border border-slate-300 rounded-xl font-bold text-slate-600 hover:bg-slate-100">Cancel</button>
+          <button type="submit" class="px-5 py-2 bg-isatu-blue text-white rounded-xl font-bold hover:bg-blue-900 shadow">Save Accommodation</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- ADMIN ADD STAFF MODAL -->
+  <div id="adminStaffModal" class="fixed inset-0 z-50 bg-slate-900/70 backdrop-blur-sm hidden items-center justify-center p-4 overflow-y-auto">
+    <div class="bg-white w-full max-w-md rounded-3xl shadow-2xl overflow-hidden border border-slate-200 flex flex-col my-auto">
+      <div class="bg-slate-900 text-white p-5 border-b border-yellow-400/30 flex justify-between items-center">
+        <div class="flex items-center gap-2">
+          <div class="w-8 h-8 rounded-lg bg-isatu-gold text-isatu-blue flex items-center justify-center font-bold">
+            <i data-lucide="user-check" class="w-4 h-4"></i>
+          </div>
+          <div>
+            <span class="text-[11px] font-bold text-isatu-gold uppercase tracking-wider block">RBAC Staff Provisioning</span>
+            <h3 class="font-extrabold text-lg font-heading text-white">Create Personnel Account</h3>
+          </div>
+        </div>
+        <button onclick="closeAdminStaffModal()" class="w-8 h-8 rounded-full bg-white/10 hover:bg-white/20 text-white flex items-center justify-center transition-colors">
+          <i data-lucide="x" class="w-4 h-4"></i>
+        </button>
+      </div>
+
+      <form id="adminStaffForm" onsubmit="handleSaveStaff(event)" class="p-6 space-y-4 text-xs">
+        <div>
+          <label class="block font-bold text-slate-700 mb-1">Employee Full Name *</label>
+          <input type="text" id="mStaffName" required placeholder="e.g. Kevin Patrick Tan" class="w-full px-3.5 py-2.5 border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-isatu-blue" />
+        </div>
+
+        <div>
+          <label class="block font-bold text-slate-700 mb-1">Institutional Email *</label>
+          <input type="email" id="mStaffEmail" required placeholder="k.tan@isatu.edu.ph" class="w-full px-3.5 py-2.5 border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-isatu-blue" />
+        </div>
+
+        <div>
+          <label class="block font-bold text-slate-700 mb-1">Security Role *</label>
+          <select id="mStaffRole" required class="w-full px-3.5 py-2.5 bg-white border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-isatu-blue">
+            <option value="Receptionist">Receptionist (Front Desk Operations)</option>
+            <option value="Night Auditor">Night Auditor (Financial Settlement)</option>
+            <option value="Housekeeping Supervisor">Housekeeping Supervisor</option>
+            <option value="Admin">Administrator (Full Access)</option>
+          </select>
+        </div>
+
+        <div>
+          <label class="block font-bold text-slate-700 mb-1">Assigned Shift *</label>
+          <select id="mStaffShift" required class="w-full px-3.5 py-2.5 bg-white border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-isatu-blue">
+            <option value="Morning Shift (6AM - 2PM)">Morning Shift (6:00 AM - 2:00 PM)</option>
+            <option value="Afternoon Shift (2PM - 10PM)">Afternoon Shift (2:00 PM - 10:00 PM)</option>
+            <option value="Graveyard Shift (10PM - 6AM)">Graveyard Shift (10:00 PM - 6:00 AM)</option>
+          </select>
+        </div>
+
+        <div class="pt-4 border-t border-slate-200 flex justify-end gap-2">
+          <button type="button" onclick="closeAdminStaffModal()" class="px-4 py-2 border border-slate-300 rounded-xl font-bold text-slate-600 hover:bg-slate-100">Cancel</button>
+          <button type="submit" class="px-5 py-2 bg-isatu-blue text-white rounded-xl font-bold hover:bg-blue-900 shadow">Provision Account</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- RECEPTIONIST FAST WALK-IN MODAL -->
+  <div id="walkInModal" class="fixed inset-0 z-50 bg-slate-900/70 backdrop-blur-sm hidden items-center justify-center p-4 overflow-y-auto">
+    <div class="bg-white w-full max-w-xl rounded-3xl shadow-2xl overflow-hidden border border-slate-200 flex flex-col my-auto">
+      <div class="bg-isatu-blue text-white p-5 border-b border-yellow-400/30 flex justify-between items-center">
+        <div class="flex items-center gap-2">
+          <div class="w-8 h-8 rounded-lg bg-isatu-gold text-isatu-blue flex items-center justify-center font-bold">
+            <i data-lucide="user-plus" class="w-4 h-4"></i>
+          </div>
+          <div>
+            <span class="text-[11px] font-bold text-isatu-gold uppercase tracking-wider block">Express Front Desk</span>
+            <h3 class="font-extrabold text-lg font-heading text-white">Walk-in Guest Check-In</h3>
+          </div>
+        </div>
+        <button onclick="closeWalkInModal()" class="w-8 h-8 rounded-full bg-white/10 hover:bg-white/20 text-white flex items-center justify-center transition-colors">
+          <i data-lucide="x" class="w-4 h-4"></i>
+        </button>
+      </div>
+
+      <form id="walkInForm" onsubmit="handleWalkInSubmit(event)" class="p-6 space-y-4 text-xs">
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div>
+            <label class="block font-bold text-slate-700 mb-1">Guest Full Name *</label>
+            <input type="text" id="wGuestName" required placeholder="e.g. Engr. Aris Del Rosario" class="w-full px-3.5 py-2.5 border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-isatu-blue" />
+          </div>
+          <div>
+            <label class="block font-bold text-slate-700 mb-1">Contact Mobile Number *</label>
+            <input type="tel" id="wPhone" required placeholder="0918-123-4567" class="w-full px-3.5 py-2.5 border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-isatu-blue" />
+          </div>
+        </div>
+
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div>
+            <label class="block font-bold text-slate-700 mb-1">Email Address</label>
+            <input type="email" id="wEmail" placeholder="guest@email.com" class="w-full px-3.5 py-2.5 border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-isatu-blue" />
+          </div>
+          <div>
+            <label class="block font-bold text-slate-700 mb-1">Institutional Affiliation</label>
+            <select id="wAffiliation" onchange="calcWalkInPrice()" class="w-full px-3.5 py-2.5 bg-white border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-isatu-blue">
+              <option value="external" selected>External Visitor</option>
+              <option value="faculty">ISATU Faculty / Staff</option>
+              <option value="student">ISATU Student</option>
+              <option value="alumni">ISATU Alumni</option>
+            </select>
+          </div>
+        </div>
+
+        <div>
+          <label class="block font-bold text-slate-700 mb-1">Select Available Room *</label>
+          <select id="wRoomSelect" onchange="calcWalkInPrice()" required class="w-full px-3.5 py-2.5 bg-white border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-isatu-blue">
+            <!-- Populated via JS -->
+          </select>
+        </div>
+
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div>
+            <label class="block font-bold text-slate-700 mb-1">Check-in Date *</label>
+            <input type="date" id="wCheckIn" onchange="calcWalkInPrice()" required class="w-full px-3.5 py-2.5 border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-isatu-blue" />
+          </div>
+          <div>
+            <label class="block font-bold text-slate-700 mb-1">Check-out Date *</label>
+            <input type="date" id="wCheckOut" onchange="calcWalkInPrice()" required class="w-full px-3.5 py-2.5 border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-isatu-blue" />
+          </div>
+        </div>
+
+        <!-- Walk-in Price Display -->
+        <div class="bg-blue-50 p-3.5 rounded-xl border border-blue-200 flex justify-between items-center">
+          <div>
+            <span class="text-slate-500 block">Total Calculated Folio:</span>
+            <span id="wPriceCalcDetails" class="text-[11px] text-slate-600 font-medium">1 Night</span>
+          </div>
+          <span id="wGrandTotal" class="text-base font-extrabold text-isatu-blue">₱0</span>
+        </div>
+
+        <!-- Walk-in Payment Term -->
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div>
+            <label class="block font-bold text-slate-700 mb-1">Payment Term *</label>
+            <select id="wPaymentTerm" class="w-full px-3.5 py-2.5 bg-white border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-isatu-blue">
+              <option value="full">Full Payment (100%)</option>
+              <option value="downpayment">Downpayment (50%)</option>
+            </select>
+          </div>
+          <div>
+            <label class="block font-bold text-slate-700 mb-1">Payment Method *</label>
+            <select id="wPaymentMethod" class="w-full px-3.5 py-2.5 bg-white border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-isatu-blue">
+              <option value="cash">Cash at Front Desk</option>
+              <option value="gcash">GCash</option>
+              <option value="landbank">Landbank Transfer</option>
+            </select>
+          </div>
+        </div>
+
+        <div>
+          <label class="block font-bold text-slate-700 mb-1">Reference No. (if GCash/Landbank)</label>
+          <input type="text" id="wGcashRef" placeholder="Optional for cash payments" class="w-full px-3.5 py-2.5 border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-isatu-blue font-mono uppercase" />
+        </div>
+
+        <div class="flex items-center gap-2 p-3 bg-emerald-50 rounded-xl border border-emerald-200">
+          <input type="checkbox" id="wImmediateCheckIn" checked class="rounded text-emerald-600 focus:ring-emerald-500" />
+          <label for="wImmediateCheckIn" class="text-emerald-900 font-bold">Process immediate check-in & issue room key card now</label>
+        </div>
+
+        <div class="pt-4 border-t border-slate-200 flex justify-end gap-2">
+          <button type="button" onclick="closeWalkInModal()" class="px-4 py-2 border border-slate-300 rounded-xl font-bold text-slate-600 hover:bg-slate-100">Cancel</button>
+          <button type="submit" class="px-5 py-2 bg-isatu-gold text-isatu-blue rounded-xl font-bold hover:bg-yellow-400 shadow">Confirm Walk-In</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Initialize Lucide Icons -->
+  <script>
+    lucide.createIcons();
+  </script>
+  <!-- Application JS -->
+  <script src="js/app.js?v=3.0"></script>
+</body>
+</html>
